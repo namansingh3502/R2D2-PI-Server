@@ -1,10 +1,10 @@
 const keyMap = {
-  w: { label: "FORWARD", action: "FWD", short: "W" },
-  s: { label: "BACKWARD", action: "BWD", short: "S" },
-  a: { label: "LEFT", action: "LEFT", short: "A" },
-  d: { label: "RIGHT", action: "RIGHT", short: "D" },
-  q: { label: "ROTATE CW", action: "ROT CW", short: "Q" },
-  e: { label: "ROTATE CCW", action: "ROT CCW", short: "E" },
+  w: { label: "FORWARD", action: "FWD", short: "W", direction: "forward" },
+  s: { label: "BACKWARD", action: "BWD", short: "S", direction: "backward" },
+  a: { label: "LEFT", action: "LEFT", short: "A", direction: "left" },
+  d: { label: "RIGHT", action: "RIGHT", short: "D", direction: "right" },
+  q: { label: "ROTATE CW", action: "ROT CW", short: "Q", direction: "rotate_cw" },
+  e: { label: "ROTATE CCW", action: "ROT CCW", short: "E", direction: "rotate_ccw" },
 };
 
 const keyState = Object.fromEntries(Object.keys(keyMap).map((key) => [key, false]));
@@ -23,6 +23,11 @@ const tickSvg = document.getElementById("tick-svg");
 const dateElement = document.getElementById("date");
 const timeElement = document.getElementById("time");
 const carCanvas = document.getElementById("car-canvas");
+const connectionRow = document.querySelector(".connection-row");
+const connectionState = document.getElementById("connection-state");
+let movementSocket;
+let motorAvailable = false;
+let motorError = null;
 
 function activeKeys() {
   return Object.keys(keyState).filter((key) => keyState[key]);
@@ -156,18 +161,24 @@ function syncClasses() {
   const rotatingCcw = keyState.e;
   const rotating = rotatingCw || rotatingCcw;
   const anyActive = keys.length > 0;
+  const uiActive = anyActive && motorAvailable && !motorError;
 
   vehicle.className = "vehicle-visual";
-  if (moving) vehicle.classList.add("active-move");
-  if (rotating) vehicle.classList.add("active-rotate");
+  if (moving && uiActive) vehicle.classList.add("active-move");
+  if (rotating && uiActive) vehicle.classList.add("active-rotate");
   if (rotatingCw) vehicle.classList.add("rotate-cw");
   if (rotatingCcw) vehicle.classList.add("rotate-ccw");
   keys.forEach((key) => vehicle.classList.add(`active-${key}`));
 
-  statusBadge.classList.toggle("active", anyActive);
-  statusText.textContent = anyActive ? "ACTIVE" : "STANDBY";
+  statusBadge.classList.toggle("active", uiActive);
+  statusBadge.classList.toggle("inactive", !motorAvailable || Boolean(motorError));
+  if (!motorAvailable || motorError) {
+    statusText.textContent = "INACTIVE";
+  } else {
+    statusText.textContent = anyActive ? "ACTIVE" : "STANDBY";
+  }
   commandReadout.textContent = activeCommand();
-  commandReadout.classList.toggle("active", anyActive);
+  commandReadout.classList.toggle("active", uiActive);
 
   document.querySelectorAll(".key-row, .bar").forEach((element) => {
     element.classList.toggle("active", keyState[element.dataset.key]);
@@ -190,6 +201,84 @@ function pushLog() {
   renderLog();
 }
 
+function setConnectionState(state) {
+  connectionRow.classList.remove("connected", "error");
+  if (state === "CONNECTED") {
+    connectionRow.classList.add("connected");
+  } else if (state === "ERROR" || state === "DISCONNECTED") {
+    connectionRow.classList.add("error");
+  }
+  connectionState.textContent = state;
+}
+
+function applyMotorStatus(motor, status) {
+  if (motor) {
+    motorAvailable = Boolean(motor.available);
+    motorError = motor.error || null;
+  }
+
+  if (status === "error" || status === "inactive") {
+    motorAvailable = false;
+    motorError = motorError || status;
+  }
+
+  syncClasses();
+}
+
+function movementSocketUrl() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/movement`;
+}
+
+function connectMovementSocket() {
+  movementSocket = new WebSocket(movementSocketUrl());
+
+  movementSocket.addEventListener("open", () => {
+    setConnectionState("CONNECTED");
+  });
+
+  movementSocket.addEventListener("message", (event) => {
+    const payload = JSON.parse(event.data);
+    applyMotorStatus(payload.motor, payload.status);
+  });
+
+  movementSocket.addEventListener("close", () => {
+    setConnectionState("DISCONNECTED");
+    window.setTimeout(connectMovementSocket, 1200);
+  });
+
+  movementSocket.addEventListener("error", () => {
+    setConnectionState("ERROR");
+  });
+}
+
+function sendMovement(direction) {
+  if (!movementSocket || movementSocket.readyState !== WebSocket.OPEN) {
+    motorError = "websocket unavailable";
+    syncClasses();
+    return;
+  }
+
+  movementSocket.send(JSON.stringify({ direction }));
+}
+
+async function fetchMotorStatus() {
+  try {
+    const response = await fetch("/motor/status");
+    applyMotorStatus(await response.json(), null);
+  } catch {
+    motorAvailable = false;
+    motorError = "motor status unavailable";
+    syncClasses();
+  }
+}
+
+function stopIfNoKeysActive() {
+  if (!activeKeys().length) {
+    sendMovement("stop");
+  }
+}
+
 function setKey(key, pressed) {
   if (!(key in keyMap) || keyState[key] === pressed) {
     return;
@@ -198,7 +287,10 @@ function setKey(key, pressed) {
   keyState[key] = pressed;
   syncClasses();
   if (pressed) {
+    sendMovement(keyMap[key].direction);
     pushLog();
+  } else {
+    stopIfNoKeysActive();
   }
 }
 
@@ -258,4 +350,6 @@ renderLog();
 syncClasses();
 updateClock();
 loadCarImage();
+fetchMotorStatus();
+connectMovementSocket();
 setInterval(updateClock, 1000);

@@ -87,6 +87,11 @@ body {
   box-shadow: 0 0 8px var(--primary);
 }
 
+.status-badge.inactive .status-dot {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px #ff5c5c;
+}
+
 #status-text {
   color: var(--muted);
   font-family: "Share Tech Mono", monospace;
@@ -96,6 +101,10 @@ body {
 
 .status-badge.active #status-text {
   color: var(--primary);
+}
+
+.status-badge.inactive #status-text {
+  color: #ff5c5c;
 }
 
 .clock-group {
@@ -472,6 +481,26 @@ h2 {
   color: var(--muted-dark);
   font-family: "Share Tech Mono", monospace;
   font-size: 0.625rem;
+}
+
+.connection-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+  color: var(--muted-dark);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
+}
+
+.connection-row.connected {
+  color: var(--primary);
+}
+
+.connection-row.error {
+  color: #ff5c5c;
 }
 
 .log-list {

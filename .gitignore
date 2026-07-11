@@ -41,3 +41,5 @@ htmlcov/
 
 # Logs
 *.log
+logs/*.log
+!logs/.gitkeep
