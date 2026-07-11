@@ -1,10 +1,11 @@
 import asyncio
+import contextlib
 import os
 import shlex
 from collections.abc import AsyncIterator, Sequence
 
 DEFAULT_CAMERA_COMMAND = (
-    "libcamera-vid",
+    "rpicam-vid",
     "--codec",
     "mjpeg",
     "--timeout",
@@ -20,6 +21,7 @@ DEFAULT_CAMERA_COMMAND = (
 )
 JPEG_END = b"\xff\xd9"
 JPEG_START = b"\xff\xd8"
+MAX_STDERR_BYTES = 4096
 
 
 class CameraStreamError(Exception):
@@ -30,7 +32,23 @@ def camera_command() -> Sequence[str]:
     configured = os.getenv("R2D2_CAMERA_COMMAND")
     if configured:
         return shlex.split(configured)
+
     return DEFAULT_CAMERA_COMMAND
+
+
+async def drain_stderr(stream: asyncio.StreamReader | None) -> bytes:
+    if stream is None:
+        return b""
+
+    captured = bytearray()
+    while True:
+        chunk = await stream.read(1024)
+        if not chunk:
+            break
+        captured.extend(chunk)
+        if len(captured) > MAX_STDERR_BYTES:
+            del captured[: len(captured) - MAX_STDERR_BYTES]
+    return bytes(captured)
 
 
 def extract_jpeg_frame(buffer: bytes) -> tuple[bytes | None, bytes]:
@@ -67,6 +85,7 @@ async def stream_camera_frames(
         raise CameraStreamError("Camera process did not expose stdout")
 
     buffer = b""
+    stderr_task = asyncio.create_task(drain_stderr(process.stderr))
     stopped_by_server = False
     try:
         while True:
@@ -89,13 +108,15 @@ async def stream_camera_frames(
             except TimeoutError:
                 process.kill()
                 await process.wait()
+        if not stderr_task.done():
+            stderr_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await stderr_task
 
     if stopped_by_server:
         return
 
-    stderr = b""
-    if process.stderr is not None:
-        stderr = await process.stderr.read()
+    stderr = await stderr_task
     message = stderr.decode(errors="replace").strip()
     if process.returncode not in (0, None):
         raise CameraStreamError(message or f"Camera exited with {process.returncode}")

@@ -4,7 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from r2d2_server import motor_controller
-from r2d2_server.camera_stream import CameraStreamError, extract_jpeg_frame
+from r2d2_server.camera_stream import (
+    CameraStreamError,
+    camera_command,
+    extract_jpeg_frame,
+)
 from r2d2_server.logging_config import LOG_FILE
 from r2d2_server.main import app, robot_controller
 
@@ -100,6 +104,26 @@ def test_extract_jpeg_frame_returns_first_complete_frame() -> None:
 
     assert frame == b"\xff\xd8one\xff\xd9"
     assert remaining == b"tail"
+
+
+def test_camera_command_prefers_configured_command(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("R2D2_CAMERA_COMMAND", "custom-camera --flag value")
+
+    assert camera_command() == ["custom-camera", "--flag", "value"]
+
+
+def test_camera_command_defaults_to_rpicam(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("R2D2_CAMERA_COMMAND", raising=False)
+
+    command = camera_command()
+
+    assert command[0] == "rpicam-vid"
+    assert "--codec" in command
+    assert "mjpeg" in command
 
 
 def test_movement_websocket_dispatches_direction() -> None:

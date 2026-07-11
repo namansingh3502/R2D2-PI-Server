@@ -269,11 +269,12 @@ function connectMovementSocket() {
   });
 }
 
-function setCameraState(state) {
+function setCameraState(state, message = null) {
   cameraState.textContent = state;
   cameraState.parentElement.classList.toggle("connected", state === "STREAMING");
   cameraState.parentElement.classList.toggle("error", state === "ERROR" || state === "DISCONNECTED");
   cameraPlaceholder.hidden = state === "STREAMING";
+  cameraPlaceholder.textContent = message || "NO SIGNAL";
 }
 
 function renderCameraFrame(frame) {
@@ -310,7 +311,7 @@ function connectCameraSocket() {
     const payload = JSON.parse(event.data);
     if (payload.type === "error") {
       cameraReconnectDelay = Math.max(cameraReconnectDelay, 5000);
-      setCameraState("ERROR");
+      setCameraState("ERROR", payload.message);
     }
   });
 
