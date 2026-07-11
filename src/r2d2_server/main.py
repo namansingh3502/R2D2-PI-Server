@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from r2d2_server import motor_controller
+from r2d2_server.camera_stream import CameraStreamError, stream_camera_frames
 from r2d2_server.controller import Direction, RobotController
 from r2d2_server.logging_config import configure_logging
 
@@ -74,6 +75,22 @@ async def movement_websocket(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         logger.info("websocket_disconnected path=/ws/movement")
         robot_controller.stop()
+
+
+@app.websocket("/ws/camera")
+async def camera_websocket(websocket: WebSocket) -> None:
+    await websocket.accept()
+    logger.info("websocket_connected path=/ws/camera")
+    await websocket.send_json({"type": "connected", "stream": "camera"})
+
+    try:
+        async for frame in stream_camera_frames():
+            await websocket.send_bytes(frame)
+    except WebSocketDisconnect:
+        logger.info("websocket_disconnected path=/ws/camera")
+    except CameraStreamError as exc:
+        logger.warning("camera_stream_error error=%s", exc)
+        await websocket.send_json({"type": "error", "message": str(exc)})
 
 
 def handle_movement_payload(payload: object) -> dict[str, object]:

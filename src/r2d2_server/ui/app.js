@@ -25,9 +25,15 @@ const timeElement = document.getElementById("time");
 const carCanvas = document.getElementById("car-canvas");
 const connectionRow = document.querySelector(".connection-row");
 const connectionState = document.getElementById("connection-state");
+const cameraStream = document.getElementById("camera-stream");
+const cameraState = document.getElementById("camera-state");
+const cameraPlaceholder = document.getElementById("camera-placeholder");
 const touchButtons = document.querySelectorAll(".touch-button[data-key]");
 const stopButton = document.querySelector(".touch-button[data-stop]");
 let movementSocket;
+let cameraSocket;
+let cameraFrameUrl = null;
+let cameraReconnectDelay = 1200;
 let motorAvailable = false;
 let motorError = null;
 
@@ -236,6 +242,11 @@ function movementSocketUrl() {
   return `${protocol}//${window.location.host}/ws/movement`;
 }
 
+function cameraSocketUrl() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/camera`;
+}
+
 function connectMovementSocket() {
   movementSocket = new WebSocket(movementSocketUrl());
 
@@ -255,6 +266,61 @@ function connectMovementSocket() {
 
   movementSocket.addEventListener("error", () => {
     setConnectionState("ERROR");
+  });
+}
+
+function setCameraState(state) {
+  cameraState.textContent = state;
+  cameraState.parentElement.classList.toggle("connected", state === "STREAMING");
+  cameraState.parentElement.classList.toggle("error", state === "ERROR" || state === "DISCONNECTED");
+  cameraPlaceholder.hidden = state === "STREAMING";
+}
+
+function renderCameraFrame(frame) {
+  if (cameraFrameUrl) {
+    URL.revokeObjectURL(cameraFrameUrl);
+  }
+
+  cameraFrameUrl = URL.createObjectURL(frame);
+  cameraStream.src = cameraFrameUrl;
+  cameraReconnectDelay = 1200;
+  setCameraState("STREAMING");
+}
+
+function scheduleCameraReconnect() {
+  const delay = cameraReconnectDelay;
+  cameraReconnectDelay = Math.min(Math.round(cameraReconnectDelay * 1.5), 10000);
+  window.setTimeout(connectCameraSocket, delay);
+}
+
+function connectCameraSocket() {
+  cameraSocket = new WebSocket(cameraSocketUrl());
+  cameraSocket.binaryType = "blob";
+
+  cameraSocket.addEventListener("open", () => {
+    setCameraState("CONNECTED");
+  });
+
+  cameraSocket.addEventListener("message", (event) => {
+    if (event.data instanceof Blob) {
+      renderCameraFrame(event.data);
+      return;
+    }
+
+    const payload = JSON.parse(event.data);
+    if (payload.type === "error") {
+      cameraReconnectDelay = Math.max(cameraReconnectDelay, 5000);
+      setCameraState("ERROR");
+    }
+  });
+
+  cameraSocket.addEventListener("close", () => {
+    setCameraState("DISCONNECTED");
+    scheduleCameraReconnect();
+  });
+
+  cameraSocket.addEventListener("error", () => {
+    setCameraState("ERROR");
   });
 }
 
@@ -404,5 +470,6 @@ updateClock();
 loadCarImage();
 fetchMotorStatus();
 connectMovementSocket();
+connectCameraSocket();
 bindTouchControls();
 setInterval(updateClock, 1000);

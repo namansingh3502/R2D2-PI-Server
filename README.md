@@ -12,6 +12,7 @@ functions.
 - Keyboard controls: `W`, `A`, `S`, `D`, `Q`, `E`
 - Touch controls: forward, backward, left, right, rotate CW, rotate CCW, stop
 - WebSocket movement endpoint
+- WebSocket camera stream endpoint
 - Motor status endpoint
 - GPIO motor driver integration through `gpiozero`
 - Server logs written to `logs/server.log`
@@ -98,6 +99,17 @@ the error.
 
   Responses include command status and motor status. If the motor driver or
   pins are unavailable, responses use `status: "inactive"`.
+
+- `WS /ws/camera`
+  Starts the Pi camera stream when a client connects. The endpoint sends an
+  initial JSON connection message, then binary JPEG frames. By default it runs:
+
+  ```bash
+  libcamera-vid --codec mjpeg --timeout 0 --width 640 --height 480 --framerate 15 --output -
+  ```
+
+  Override the camera command with `R2D2_CAMERA_COMMAND` if the Pi camera setup
+  uses a different capture command.
 
 ## Logs
 
@@ -189,7 +201,7 @@ sudo systemctl reload nginx
 ```
 
 Nginx listens on port `80` and proxies to Uvicorn on `127.0.0.1:8000`,
-including WebSocket upgrades for `/ws/movement`.
+including WebSocket upgrades for `/ws/movement` and `/ws/camera`.
 
 Open the controller through Nginx:
 

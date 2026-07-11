@@ -1,6 +1,10 @@
+from collections.abc import AsyncIterator
+
+import pytest
 from fastapi.testclient import TestClient
 
 from r2d2_server import motor_controller
+from r2d2_server.camera_stream import CameraStreamError, extract_jpeg_frame
 from r2d2_server.logging_config import LOG_FILE
 from r2d2_server.main import app, robot_controller
 
@@ -43,8 +47,59 @@ def test_ui_static_assets_are_served() -> None:
     assert response.status_code == 200
     assert "ROTATE CCW" in response.text
     assert "/ws/movement" in response.text
+    assert "/ws/camera" in response.text
     assert "/motor/status" in response.text
     assert "bindTouchControls" in response.text
+
+
+def test_camera_websocket_streams_binary_frames(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_stream_camera_frames() -> AsyncIterator[bytes]:
+        yield b"\xff\xd8camera-frame\xff\xd9"
+
+    monkeypatch.setattr(
+        "r2d2_server.main.stream_camera_frames",
+        fake_stream_camera_frames,
+    )
+
+    with client.websocket_connect("/ws/camera") as websocket:
+        connected = websocket.receive_json()
+        assert connected == {"type": "connected", "stream": "camera"}
+        assert websocket.receive_bytes() == b"\xff\xd8camera-frame\xff\xd9"
+
+
+def test_camera_websocket_reports_stream_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_stream_camera_frames() -> AsyncIterator[bytes]:
+        raise CameraStreamError("boom")
+        yield b""
+
+    monkeypatch.setattr(
+        "r2d2_server.main.stream_camera_frames",
+        fake_stream_camera_frames,
+    )
+
+    with client.websocket_connect("/ws/camera") as websocket:
+        websocket.receive_json()
+        payload = websocket.receive_json()
+
+        assert payload["type"] == "error"
+
+
+def test_extract_jpeg_frame_keeps_partial_frame() -> None:
+    frame, remaining = extract_jpeg_frame(b"noise\xff\xd8partial")
+
+    assert frame is None
+    assert remaining == b"\xff\xd8partial"
+
+
+def test_extract_jpeg_frame_returns_first_complete_frame() -> None:
+    frame, remaining = extract_jpeg_frame(b"noise\xff\xd8one\xff\xd9tail")
+
+    assert frame == b"\xff\xd8one\xff\xd9"
+    assert remaining == b"tail"
 
 
 def test_movement_websocket_dispatches_direction() -> None:
