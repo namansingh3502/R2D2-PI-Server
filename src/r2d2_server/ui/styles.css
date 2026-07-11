@@ -1,0 +1,684 @@
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Oxanium:wght@400;600;700&display=swap");
+
+:root {
+  --background: #0a0c0f;
+  --foreground: #c8d6e5;
+  --primary: #00e5ff;
+  --secondary: #141a22;
+  --muted: #4a6070;
+  --muted-dark: #1e2a38;
+  --muted-darker: #2d4455;
+  --border: rgba(0, 229, 255, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 229, 255, 0.03), transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 229, 255, 0.02), transparent 50%),
+    var(--background);
+  color: var(--foreground);
+  font-family: Rajdhani, sans-serif;
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-group,
+.clock-group,
+.status-badge {
+  display: flex;
+  align-items: center;
+}
+
+.brand-group {
+  gap: 1rem;
+}
+
+.brand {
+  color: var(--primary);
+  font-family: Oxanium, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.divider {
+  width: 1px;
+  height: 1rem;
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.status-badge {
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted-dark);
+}
+
+.status-badge.active .status-dot {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+#status-text {
+  color: var(--muted);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.15em;
+}
+
+.status-badge.active #status-text {
+  color: var(--primary);
+}
+
+.clock-group {
+  gap: 1.5rem;
+  font-family: "Share Tech Mono", monospace;
+  letter-spacing: 0.12em;
+}
+
+#date {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+#time {
+  color: #8fa5bc;
+  font-size: 0.875rem;
+}
+
+.dashboard {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 0;
+}
+
+.visual-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-right: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+.vehicle-visual {
+  position: relative;
+  width: min(70vh, calc(100vw - 380px), 620px);
+  min-width: 22rem;
+  aspect-ratio: 1;
+}
+
+.vehicle-visual > * {
+  position: absolute;
+}
+
+.tick-ring,
+.movement-layer,
+.glow-rings,
+.reticle {
+  inset: 0;
+}
+
+.tick-ring {
+  animation: spin 12s linear infinite;
+  opacity: 0.35;
+}
+
+.active-rotate .tick-ring {
+  animation-duration: 2s;
+  opacity: 1;
+}
+
+.rotate-ccw .tick-ring {
+  animation-name: spin-reverse;
+}
+
+.tick-ring line {
+  stroke: rgba(0, 229, 255, 0.4);
+  stroke-width: 0.75;
+}
+
+.tick-ring line.major {
+  stroke: var(--primary);
+  stroke-width: 1.5;
+}
+
+.tick-ring circle,
+.radar-sweep circle {
+  fill: none;
+  stroke: rgba(0, 229, 255, 0.14);
+  stroke-width: 1;
+}
+
+.radar-sweep {
+  width: 72%;
+  height: 72%;
+  inset: 14%;
+  animation: spin 3s linear infinite;
+}
+
+.active-move .radar-sweep {
+  animation-duration: 1.2s;
+}
+
+.radar-sweep line {
+  stroke: var(--primary);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.radar-sweep .dash-ring {
+  stroke: rgba(0, 229, 255, 0.08);
+  stroke-dasharray: 4 6;
+}
+
+.movement-layer {
+  pointer-events: none;
+}
+
+.chevrons,
+.trail,
+.rotation-arcs,
+.glow-rings {
+  opacity: 0;
+}
+
+.active-w .chevrons-forward,
+.active-s .chevrons-backward,
+.active-a .chevrons-left,
+.active-d .chevrons-right,
+.active-w .trail-forward,
+.active-s .trail-backward,
+.active-a .trail-left,
+.active-d .trail-right,
+.active-move .glow-rings,
+.active-rotate .rotation-arcs {
+  opacity: 1;
+}
+
+.chevrons polyline {
+  fill: none;
+  stroke: var(--primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+  animation: chevron-fade 550ms infinite;
+}
+
+.trail {
+  opacity: 0;
+  animation: trail-pulse 400ms infinite;
+}
+
+.trail-forward {
+  fill: url("#trail-fwd");
+}
+
+.trail-backward {
+  fill: url("#trail-bwd");
+}
+
+.trail-left {
+  fill: url("#trail-left");
+}
+
+.trail-right {
+  fill: url("#trail-right");
+}
+
+.rotation-arcs {
+  width: 60%;
+  height: 60%;
+  inset: 20%;
+}
+
+.arc,
+.arrow {
+  display: none;
+}
+
+.rotate-cw .arc-cw,
+.rotate-cw .arrow-cw,
+.rotate-ccw .arc-ccw,
+.rotate-ccw .arrow-ccw {
+  display: block;
+}
+
+.arc {
+  fill: none;
+  stroke: var(--primary);
+  stroke-dasharray: 6 4;
+  stroke-width: 2;
+  opacity: 0.8;
+  animation: dash-cw 500ms infinite;
+}
+
+.arc-ccw {
+  animation-name: dash-ccw;
+}
+
+.arrow {
+  fill: var(--primary);
+  opacity: 0.9;
+}
+
+.pulse {
+  fill: none;
+  stroke: var(--primary);
+  opacity: 0;
+}
+
+.pulse-one {
+  stroke-width: 1;
+  animation: pulse-one 1.8s infinite;
+}
+
+.pulse-two {
+  stroke-width: 0.5;
+  animation: pulse-two 1.8s 600ms infinite;
+}
+
+.car-frame {
+  z-index: 2;
+  inset: 24%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.15));
+  transition: filter 180ms ease;
+}
+
+.active-move .car-frame {
+  filter:
+    drop-shadow(0 0 14px rgba(0, 229, 255, 0.55))
+    drop-shadow(0 0 4px rgba(0, 229, 255, 0.8));
+}
+
+.active-rotate .car-frame {
+  animation: spin 2s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4));
+}
+
+.rotate-ccw .car-frame {
+  animation-name: spin-reverse;
+}
+
+#car-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.reticle {
+  pointer-events: none;
+}
+
+.reticle line {
+  stroke: rgba(0, 229, 255, 0.3);
+  stroke-width: 1;
+}
+
+.reticle path {
+  fill: none;
+  stroke: rgba(0, 229, 255, 0.5);
+  stroke-width: 1.5;
+}
+
+.command-readout {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  color: var(--muted-darker);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.2em;
+  transform: translateX(-50%);
+  transition: color 150ms ease;
+}
+
+.command-readout.active {
+  color: var(--primary);
+}
+
+.side-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.key-reference {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  color: var(--muted-darker);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+
+.key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.5rem;
+  border-left: 2px solid transparent;
+  background: transparent;
+  transition: background 75ms ease, border-color 75ms ease;
+}
+
+.key-row.active {
+  border-left-color: var(--primary);
+  background: rgba(0, 229, 255, 0.06);
+}
+
+.key-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.key-code {
+  min-width: 1rem;
+  color: var(--muted);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.key-row.active .key-code,
+.key-row.active .key-action {
+  color: var(--primary);
+}
+
+.key-label {
+  color: var(--muted-darker);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.key-row.active .key-label {
+  color: var(--foreground);
+}
+
+.key-action {
+  color: var(--muted-dark);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+}
+
+.command-log {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+.section-row h2 {
+  margin: 0;
+}
+
+#log-count {
+  color: var(--muted-dark);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+}
+
+.log-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 0.75rem 1.25rem;
+}
+
+.empty-log {
+  color: var(--muted-dark);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.log-time {
+  min-width: 5rem;
+  padding-top: 0.125rem;
+  color: var(--muted-darker);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+}
+
+.log-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.log-key {
+  padding: 0 0.25rem;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 2px;
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--primary);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.5625rem;
+}
+
+.log-command {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.system-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-top: 1px solid rgba(0, 229, 255, 0.08);
+  color: var(--muted-dark);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
+}
+
+.bars {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.bar {
+  width: 0.25rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.bar.active {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: rgba(0, 229, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.25);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-reverse {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes chevron-fade {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes trail-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes dash-cw {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes dash-ccw {
+  to {
+    stroke-dashoffset: 20;
+  }
+}
+
+@keyframes pulse-one {
+  0%,
+  100% {
+    opacity: 0.35;
+    r: 80;
+  }
+
+  50% {
+    opacity: 0;
+    r: 110;
+  }
+}
+
+@keyframes pulse-two {
+  0%,
+  100% {
+    opacity: 0.2;
+    r: 60;
+  }
+
+  50% {
+    opacity: 0;
+    r: 90;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-panel {
+    min-height: 60vh;
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+  }
+
+  .vehicle-visual {
+    width: min(86vw, 70vh);
+    min-width: 18rem;
+  }
+
+  .side-panel {
+    min-height: 30rem;
+  }
+}

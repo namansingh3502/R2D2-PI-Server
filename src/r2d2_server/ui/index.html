@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>R2D2 Controller</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand-group">
+          <div class="brand">CTRL::REMOTE</div>
+          <div class="divider"></div>
+          <div class="status-badge" id="status-badge">
+            <span class="status-dot"></span>
+            <span id="status-text">STANDBY</span>
+          </div>
+        </div>
+        <div class="clock-group">
+          <div id="date">---</div>
+          <div id="time">--:--:--</div>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="visual-panel" aria-label="Vehicle control visualization">
+          <div class="vehicle-visual" id="vehicle-visual">
+            <div class="tick-ring" aria-hidden="true">
+              <svg id="tick-svg" viewBox="0 0 520 520"></svg>
+            </div>
+
+            <div class="radar-sweep" aria-hidden="true">
+              <svg viewBox="0 0 200 200">
+                <defs>
+                  <radialGradient id="sweep-grad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="#00e5ff" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <path d="M100,100 L100,0 A100,100 0 0,1 200,100 Z" fill="url(#sweep-grad)" />
+                <line x1="100" y1="100" x2="100" y2="0" />
+                <circle cx="100" cy="100" r="100" />
+                <circle class="dash-ring" cx="100" cy="100" r="55" />
+              </svg>
+            </div>
+
+            <svg class="movement-layer" viewBox="0 0 520 520" aria-hidden="true">
+              <defs>
+                <linearGradient id="trail-fwd" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0" />
+                  <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.7" />
+                </linearGradient>
+                <linearGradient id="trail-bwd" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0" />
+                  <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.7" />
+                </linearGradient>
+                <linearGradient id="trail-left" x1="1" y1="0" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0" />
+                  <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.7" />
+                </linearGradient>
+                <linearGradient id="trail-right" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0" />
+                  <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.7" />
+                </linearGradient>
+              </defs>
+
+              <g class="chevrons chevrons-forward"></g>
+              <g class="chevrons chevrons-backward"></g>
+              <g class="chevrons chevrons-left"></g>
+              <g class="chevrons chevrons-right"></g>
+
+              <rect class="trail trail-forward" x="254" y="302" width="12" height="156" rx="2" />
+              <rect class="trail trail-backward" x="254" y="62" width="12" height="156" rx="2" />
+              <rect class="trail trail-left" x="302" y="254" width="156" height="12" rx="2" />
+              <rect class="trail trail-right" x="62" y="254" width="156" height="12" rx="2" />
+            </svg>
+
+            <div class="rotation-arcs" aria-hidden="true">
+              <svg viewBox="0 0 170 170">
+                <path class="arc arc-cw" d="M85,8 A77,77 0 0,1 162,85" />
+                <polygon class="arrow arrow-cw" points="162,85 148,78 154,94" />
+                <path class="arc arc-ccw" d="M85,8 A77,77 0 0,0 8,85" />
+                <polygon class="arrow arrow-ccw" points="8,85 22,78 16,94" />
+              </svg>
+            </div>
+
+            <div class="glow-rings" aria-hidden="true">
+              <svg viewBox="0 0 520 520">
+                <circle class="pulse pulse-one" cx="260" cy="260" r="80" />
+                <circle class="pulse pulse-two" cx="260" cy="260" r="60" />
+              </svg>
+            </div>
+
+            <div class="car-frame" id="car-frame">
+              <canvas id="car-canvas" aria-label="Four wheel robot car"></canvas>
+            </div>
+
+            <svg class="reticle" viewBox="0 0 520 520" aria-hidden="true">
+              <line x1="170" y1="260" x2="180" y2="260" />
+              <line x1="340" y1="260" x2="350" y2="260" />
+              <line x1="260" y1="170" x2="260" y2="180" />
+              <line x1="260" y1="340" x2="260" y2="350" />
+              <path d="M175,165 L175,175 L185,175" />
+              <path d="M345,165 L345,175 L335,175" />
+              <path d="M345,355 L345,345 L335,345" />
+              <path d="M175,355 L175,345 L185,345" />
+            </svg>
+          </div>
+
+          <div class="command-readout" id="command-readout">IDLE</div>
+        </section>
+
+        <aside class="side-panel">
+          <section class="key-reference">
+            <h2>KEY REFERENCE</h2>
+            <div class="key-list" id="key-list"></div>
+          </section>
+
+          <section class="command-log">
+            <div class="section-row">
+              <h2>COMMAND LOG</h2>
+              <span id="log-count">0 entries</span>
+            </div>
+            <div class="log-list" id="log-list">
+              <div class="empty-log">— awaiting input —</div>
+            </div>
+          </section>
+
+          <footer class="system-strip">
+            <div class="bars" id="bars"></div>
+            <div>SYS OK</div>
+          </footer>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/ui/app.js" defer></script>
+  </body>
+</html>
