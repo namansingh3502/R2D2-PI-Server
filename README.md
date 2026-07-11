@@ -147,3 +147,63 @@ Install pre-commit hooks:
 ```bash
 uv run pre-commit install
 ```
+
+## Production Setup
+
+Production uses Uvicorn supervised by Supervisor, with Nginx as the reverse
+proxy.
+
+Included config files:
+
+- `conf/supervisor.conf`
+- `conf/nginx.conf`
+- `conf/uvicorn.env`
+
+Install project dependencies on the host:
+
+```bash
+uv sync --no-dev
+```
+
+Run the app process directly with Uvicorn:
+
+```bash
+uv run --no-dev uvicorn r2d2_server.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1 --env-file conf/uvicorn.env
+```
+
+For Supervisor, copy or symlink the config:
+
+```bash
+sudo ln -s /home/naman/Desktop/R2D2-PI-Server/conf/supervisor.conf /etc/supervisor/conf.d/r2d2-server.conf
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl status r2d2-server
+```
+
+For Nginx, copy or symlink the config:
+
+```bash
+sudo ln -s /home/naman/Desktop/R2D2-PI-Server/conf/nginx.conf /etc/nginx/conf.d/r2d2-server.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Nginx listens on port `80` and proxies to Uvicorn on `127.0.0.1:8000`,
+including WebSocket upgrades for `/ws/movement`.
+
+Open the controller through Nginx:
+
+```text
+http://127.0.0.1/
+```
+
+Supervisor stdout/stderr logs are written under `logs/`, and app logs are
+written to:
+
+```text
+logs/server.log
+```
+
+On Raspberry Pi, make sure the Supervisor `user` has permission to access the
+GPIO backend. Without GPIO access, `/motor/status` reports inactive/noop mode
+and the UI shows `INACTIVE`.
