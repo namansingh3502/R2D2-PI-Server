@@ -384,9 +384,82 @@ body {
   flex-direction: column;
 }
 
+.touch-controls,
 .key-reference {
   padding: 1.25rem;
   border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+.control-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.touch-button,
+.control-spacer {
+  min-height: 4rem;
+}
+
+.touch-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-left-width: 2px;
+  border-radius: 0.25rem;
+  background: rgba(0, 229, 255, 0.04);
+  color: var(--foreground);
+  font-family: "Share Tech Mono", monospace;
+  touch-action: none;
+  user-select: none;
+  transition:
+    background 75ms ease,
+    border-color 75ms ease,
+    color 75ms ease,
+    transform 75ms ease;
+}
+
+.touch-button span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.touch-button small {
+  color: var(--muted);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.touch-button.active,
+.touch-button:active {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--primary);
+  transform: translateY(1px);
+}
+
+.touch-button.active small,
+.touch-button:active small {
+  color: var(--primary);
+}
+
+.stop-button {
+  border-color: rgba(255, 92, 92, 0.35);
+}
+
+.stop-button span {
+  font-size: 0.78rem;
+}
+
+.control-spacer {
+  border: 1px solid rgba(0, 229, 255, 0.04);
+  border-radius: 0.25rem;
+  background: rgba(0, 229, 255, 0.015);
 }
 
 h2 {
@@ -709,5 +782,14 @@ h2 {
 
   .side-panel {
     min-height: 30rem;
+  }
+
+  .touch-controls {
+    padding: 1rem;
+  }
+
+  .touch-button,
+  .control-spacer {
+    min-height: 4.5rem;
   }
 }

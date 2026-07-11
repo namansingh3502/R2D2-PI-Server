@@ -32,6 +32,7 @@ def test_home_page_is_served_at_root_and_home() -> None:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
         assert "CTRL::REMOTE" in response.text
+        assert "TOUCH CONTROL" in response.text
         assert "/ui/styles.css" in response.text
         assert "/ui/app.js" in response.text
 
@@ -43,6 +44,7 @@ def test_ui_static_assets_are_served() -> None:
     assert "ROTATE CCW" in response.text
     assert "/ws/movement" in response.text
     assert "/motor/status" in response.text
+    assert "bindTouchControls" in response.text
 
 
 def test_movement_websocket_dispatches_direction() -> None:

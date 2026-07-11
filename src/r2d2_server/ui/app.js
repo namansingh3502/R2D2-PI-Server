@@ -25,6 +25,8 @@ const timeElement = document.getElementById("time");
 const carCanvas = document.getElementById("car-canvas");
 const connectionRow = document.querySelector(".connection-row");
 const connectionState = document.getElementById("connection-state");
+const touchButtons = document.querySelectorAll(".touch-button[data-key]");
+const stopButton = document.querySelector(".touch-button[data-stop]");
 let movementSocket;
 let motorAvailable = false;
 let motorError = null;
@@ -183,6 +185,10 @@ function syncClasses() {
   document.querySelectorAll(".key-row, .bar").forEach((element) => {
     element.classList.toggle("active", keyState[element.dataset.key]);
   });
+
+  touchButtons.forEach((button) => {
+    button.classList.toggle("active", keyState[button.dataset.key]);
+  });
 }
 
 function pushLog() {
@@ -294,6 +300,52 @@ function setKey(key, pressed) {
   }
 }
 
+function stopAllKeys() {
+  let changed = false;
+  Object.keys(keyState).forEach((key) => {
+    if (keyState[key]) {
+      keyState[key] = false;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    syncClasses();
+  }
+  sendMovement("stop");
+}
+
+function bindTouchControls() {
+  touchButtons.forEach((button) => {
+    const key = button.dataset.key;
+
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      button.setPointerCapture(event.pointerId);
+      setKey(key, true);
+    });
+
+    button.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      button.releasePointerCapture(event.pointerId);
+      setKey(key, false);
+    });
+
+    button.addEventListener("pointercancel", () => {
+      setKey(key, false);
+    });
+
+    button.addEventListener("lostpointercapture", () => {
+      setKey(key, false);
+    });
+  });
+
+  stopButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    stopAllKeys();
+  });
+}
+
 function updateClock() {
   const now = new Date();
   dateElement.textContent = now.toLocaleDateString("en-US", {
@@ -352,4 +404,5 @@ updateClock();
 loadCarImage();
 fetchMotorStatus();
 connectMovementSocket();
+bindTouchControls();
 setInterval(updateClock, 1000);

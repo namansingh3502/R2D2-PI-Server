@@ -112,23 +112,59 @@
         </section>
 
         <aside class="side-panel">
+          <section class="touch-controls" aria-label="Touch movement controls">
+            <h2>TOUCH CONTROL</h2>
+            <div class="control-pad">
+              <button class="touch-button rotate-left" type="button" data-key="e" aria-label="Rotate counterclockwise">
+                <span>E</span>
+                <small>ROT CCW</small>
+              </button>
+              <button class="touch-button move-forward" type="button" data-key="w" aria-label="Move forward">
+                <span>W</span>
+                <small>FWD</small>
+              </button>
+              <button class="touch-button rotate-right" type="button" data-key="q" aria-label="Rotate clockwise">
+                <span>Q</span>
+                <small>ROT CW</small>
+              </button>
+              <button class="touch-button move-left" type="button" data-key="a" aria-label="Move left">
+                <span>A</span>
+                <small>LEFT</small>
+              </button>
+              <button class="touch-button stop-button" type="button" data-stop="true" aria-label="Stop movement">
+                <span>STOP</span>
+                <small>IDLE</small>
+              </button>
+              <button class="touch-button move-right" type="button" data-key="d" aria-label="Move right">
+                <span>D</span>
+                <small>RIGHT</small>
+              </button>
+              <div class="control-spacer" aria-hidden="true"></div>
+              <button class="touch-button move-backward" type="button" data-key="s" aria-label="Move backward">
+                <span>S</span>
+                <small>BWD</small>
+              </button>
+              <div class="control-spacer" aria-hidden="true"></div>
+            </div>
+          </section>
+
           <section class="key-reference">
             <h2>KEY REFERENCE</h2>
             <div class="key-list" id="key-list"></div>
           </section>
 
           <section class="command-log">
-          <div class="section-row">
-            <h2>COMMAND LOG</h2>
-            <span id="log-count">0 entries</span>
-          </div>
-          <div class="connection-row">
-            <span>WS</span>
-            <span id="connection-state">CONNECTING</span>
-          </div>
-          <div class="log-list" id="log-list">
-            <div class="empty-log">— awaiting input —</div>
-          </div>
+            <div class="section-row">
+              <h2>COMMAND LOG</h2>
+              <span id="log-count">0 entries</span>
+            </div>
+            <div class="connection-row">
+              <span>WS</span>
+              <span id="connection-state">CONNECTING</span>
+            </div>
+            <div class="log-list" id="log-list">
+              <div class="empty-log">— awaiting input —</div>
+            </div>
           </section>
 
           <footer class="system-strip">
