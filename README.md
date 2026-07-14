@@ -13,6 +13,7 @@ functions.
 - Touch controls: forward, backward, left, right, rotate CW, rotate CCW, stop
 - WebSocket movement endpoint
 - WebSocket camera stream endpoint
+- WebSocket proximity sensor endpoint
 - Motor status endpoint
 - GPIO motor driver integration through `gpiozero`
 - Server logs written to `logs/server.log`
@@ -48,6 +49,20 @@ On a non-Pi machine or when GPIO is unavailable, the server stays running and
 uses no-op motor outputs. The UI shows `INACTIVE`, and `/motor/status` reports
 the error.
 
+## Proximity Sensor Pins
+
+The robot uses two HC-SR04 ultrasonic sensors through `gpiozero.DistanceSensor`.
+The physical sensors are currently swapped, so the server maps the right-side
+GPIO pair to logical `left` and the left-side GPIO pair to logical `right`:
+
+| Logical side | TRIG GPIO | ECHO GPIO |
+| --- | --- | --- |
+| `left` | `13` | `19` |
+| `right` | `5` | `6` |
+
+Wire ECHO through a voltage divider before connecting it to the Raspberry Pi
+GPIO input.
+
 ## API
 
 - `GET /`
@@ -80,6 +95,21 @@ the error.
   }
   ```
 
+- `GET /proximity/status`
+  Returns proximity sensor availability, mode, error, and pin mapping:
+
+  ```json
+  {
+    "available": true,
+    "mode": "gpio",
+    "error": null,
+    "pins": {
+      "left": {"trigger": 13, "echo": 19},
+      "right": {"trigger": 5, "echo": 6}
+    }
+  }
+  ```
+
 - `WS /ws/movement`
   Accepts movement payloads:
 
@@ -99,6 +129,17 @@ the error.
 
   Responses include command status and motor status. If the motor driver or
   pins are unavailable, responses use `status: "inactive"`.
+
+- `WS /ws/proximity`
+  Streams proximity readings in centimeters:
+
+  ```json
+  {
+    "type": "proximity",
+    "left_cm": 12.3,
+    "right_cm": 45.6
+  }
+  ```
 
 - `WS /ws/camera`
   Starts the Pi camera stream when a client connects. The endpoint sends an
@@ -213,7 +254,8 @@ sudo systemctl reload nginx
 ```
 
 Nginx listens on port `80` and proxies to Uvicorn on `127.0.0.1:8000`,
-including WebSocket upgrades for `/ws/movement` and `/ws/camera`.
+including WebSocket upgrades for `/ws/movement`, `/ws/proximity`, and
+`/ws/camera`.
 
 Open the controller through Nginx:
 

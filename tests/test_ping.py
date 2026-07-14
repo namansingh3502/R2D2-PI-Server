@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 import pytest
 from fastapi.testclient import TestClient
 
-from r2d2_server import motor_controller
+from r2d2_server import motor_controller, proximity_controller
 from r2d2_server.camera_stream import (
     CameraStreamError,
     camera_command,
@@ -41,6 +41,19 @@ def test_motor_status_allows_browser_cors_requests() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "*"
+
+
+def test_proximity_status_returns_swapped_pin_mapping() -> None:
+    proximity_controller.set_proximity_available_for_testing(True)
+
+    response = client.get("/proximity/status")
+
+    assert response.status_code == 200
+    assert response.json()["available"] is True
+    assert response.json()["pins"] == {
+        "left": {"trigger": 13, "echo": 19},
+        "right": {"trigger": 5, "echo": 6},
+    }
 
 
 def test_home_page_is_served_at_root_and_home() -> None:
@@ -85,6 +98,7 @@ def test_ui_static_assets_are_served() -> None:
     assert "ROTATE CCW" in response.text
     assert "/ws/movement" in response.text
     assert "/ws/camera" in response.text
+    assert "/ws/proximity" in response.text
     assert "/motor/status" in response.text
     assert "R2D2_CONFIG" in response.text
     assert "bindTouchControls" in response.text
@@ -124,6 +138,35 @@ def test_camera_websocket_reports_stream_errors(
         payload = websocket.receive_json()
 
         assert payload["type"] == "error"
+
+
+def test_proximity_websocket_streams_sensor_readings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_stream_readings() -> AsyncIterator[
+        proximity_controller.ProximityReading
+    ]:
+        yield {
+            "type": "proximity",
+            "left_cm": 12.3,
+            "right_cm": 45.6,
+            "status": proximity_controller.get_status(),
+        }
+
+    monkeypatch.setattr(
+        "r2d2_server.main.proximity_controller.stream_readings",
+        fake_stream_readings,
+    )
+
+    with client.websocket_connect("/ws/proximity") as websocket:
+        connected = websocket.receive_json()
+        assert connected["type"] == "connected"
+        assert connected["stream"] == "proximity"
+
+        payload = websocket.receive_json()
+        assert payload["type"] == "proximity"
+        assert payload["left_cm"] == 12.3
+        assert payload["right_cm"] == 45.6
 
 
 def test_extract_jpeg_frame_keeps_partial_frame() -> None:

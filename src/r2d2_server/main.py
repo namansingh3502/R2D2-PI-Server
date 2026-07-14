@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from r2d2_server import motor_controller
+from r2d2_server import motor_controller, proximity_controller
 from r2d2_server.camera_stream import CameraStreamError, stream_camera_frames
 from r2d2_server.controller import Direction, RobotController
 from r2d2_server.logging_config import configure_logging
@@ -75,6 +75,17 @@ async def motor_status() -> motor_controller.MotorStatus:
     return status
 
 
+@app.get("/proximity/status", tags=["health"])
+async def proximity_status() -> proximity_controller.ProximityStatus:
+    status = proximity_controller.get_status()
+    logger.info(
+        "http_request endpoint=/proximity/status available=%s mode=%s",
+        status["available"],
+        status["mode"],
+    )
+    return status
+
+
 @app.websocket("/ws/movement")
 async def movement_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
@@ -96,6 +107,25 @@ async def movement_websocket(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         logger.info("websocket_disconnected path=/ws/movement")
         robot_controller.stop()
+
+
+@app.websocket("/ws/proximity")
+async def proximity_websocket(websocket: WebSocket) -> None:
+    await websocket.accept()
+    logger.info("websocket_connected path=/ws/proximity")
+    await websocket.send_json(
+        {
+            "type": "connected",
+            "stream": "proximity",
+            "status": proximity_controller.get_status(),
+        },
+    )
+
+    try:
+        async for reading in proximity_controller.stream_readings():
+            await websocket.send_json(reading)
+    except WebSocketDisconnect:
+        logger.info("websocket_disconnected path=/ws/proximity")
 
 
 @app.websocket("/ws/camera")

@@ -30,12 +30,18 @@ const apiTarget = document.getElementById("api-target");
 const cameraStream = document.getElementById("camera-stream");
 const cameraState = document.getElementById("camera-state");
 const cameraPlaceholder = document.getElementById("camera-placeholder");
+const leftSensorValue = document.getElementById("left-sensor-value");
+const rightSensorValue = document.getElementById("right-sensor-value");
+const leftSensorPanel = document.querySelector(".sensor-left");
+const rightSensorPanel = document.querySelector(".sensor-right");
 const touchButtons = document.querySelectorAll(".touch-button[data-key]");
 const stopButton = document.querySelector(".touch-button[data-stop]");
 let movementSocket;
 let cameraSocket;
+let proximitySocket;
 let cameraFrameUrl = null;
 let cameraReconnectDelay = 1200;
+let proximityReconnectDelay = 1200;
 let motorAvailable = false;
 let motorError = null;
 
@@ -276,6 +282,10 @@ function cameraSocketUrl() {
   return websocketUrl("/ws/camera");
 }
 
+function proximitySocketUrl() {
+  return websocketUrl("/ws/proximity");
+}
+
 function connectMovementSocket() {
   movementSocket = new WebSocket(movementSocketUrl());
 
@@ -295,6 +305,56 @@ function connectMovementSocket() {
 
   movementSocket.addEventListener("error", () => {
     setConnectionState("ERROR");
+  });
+}
+
+function renderSensor(panel, valueElement, value) {
+  const statusElement = panel.querySelector(".sensor-status");
+  const meterElement = panel.querySelector(".sensor-meter span");
+
+  if (typeof value !== "number") {
+    valueElement.textContent = "--";
+    statusElement.textContent = "OFFLINE";
+    meterElement.style.width = "0%";
+    return;
+  }
+
+  valueElement.textContent = value.toFixed(1);
+  statusElement.textContent = value < 25 ? "NEAR" : "CLEAR";
+  meterElement.style.width = `${Math.max(0, Math.min(100, 100 - (value / 200) * 100))}%`;
+}
+
+function applyProximityReading(payload) {
+  proximityReconnectDelay = 1200;
+  renderSensor(leftSensorPanel, leftSensorValue, payload.left_cm);
+  renderSensor(rightSensorPanel, rightSensorValue, payload.right_cm);
+}
+
+function scheduleProximityReconnect() {
+  const delay = proximityReconnectDelay;
+  proximityReconnectDelay = Math.min(Math.round(proximityReconnectDelay * 1.5), 10000);
+  window.setTimeout(connectProximitySocket, delay);
+}
+
+function connectProximitySocket() {
+  proximitySocket = new WebSocket(proximitySocketUrl());
+
+  proximitySocket.addEventListener("message", (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === "proximity") {
+      applyProximityReading(payload);
+    }
+  });
+
+  proximitySocket.addEventListener("close", () => {
+    renderSensor(leftSensorPanel, leftSensorValue, null);
+    renderSensor(rightSensorPanel, rightSensorValue, null);
+    scheduleProximityReconnect();
+  });
+
+  proximitySocket.addEventListener("error", () => {
+    renderSensor(leftSensorPanel, leftSensorValue, null);
+    renderSensor(rightSensorPanel, rightSensorValue, null);
   });
 }
 
@@ -502,5 +562,6 @@ loadCarImage();
 fetchMotorStatus();
 connectMovementSocket();
 connectCameraSocket();
+connectProximitySocket();
 bindTouchControls();
 setInterval(updateClock, 1000);
