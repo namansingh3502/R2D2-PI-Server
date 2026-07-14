@@ -123,6 +123,30 @@
             <img id="camera-stream" alt="Live camera stream" />
             <div class="camera-placeholder" id="camera-placeholder">NO SIGNAL</div>
           </div>
+          <div class="sensor-grid" aria-label="Proximity sensor readings">
+            <div class="sensor-panel sensor-left">
+              <div class="sensor-heading">
+                <h2>LEFT SENSOR</h2>
+                <span class="sensor-status">WAITING</span>
+              </div>
+              <div class="sensor-value" id="left-sensor-value">--</div>
+              <div class="sensor-unit">CM</div>
+              <div class="sensor-meter" aria-hidden="true">
+                <span style="width: 0%"></span>
+              </div>
+            </div>
+            <div class="sensor-panel sensor-right">
+              <div class="sensor-heading">
+                <h2>RIGHT SENSOR</h2>
+                <span class="sensor-status">WAITING</span>
+              </div>
+              <div class="sensor-value" id="right-sensor-value">--</div>
+              <div class="sensor-unit">CM</div>
+              <div class="sensor-meter" aria-hidden="true">
+                <span style="width: 0%"></span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <aside class="side-panel">
@@ -176,6 +200,10 @@
               <span>WS</span>
               <span id="connection-state">CONNECTING</span>
             </div>
+            <div class="connection-row api-row">
+              <span>API</span>
+              <span id="api-target">LOCAL</span>
+            </div>
             <div class="log-list" id="log-list">
               <div class="empty-log">— awaiting input —</div>
             </div>
@@ -189,6 +217,7 @@
       </main>
     </div>
 
+    <script src="/ui/config.js"></script>
     <script src="/ui/app.js" defer></script>
   </body>
 </html>

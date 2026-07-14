@@ -8,6 +8,7 @@ const keyMap = {
 };
 
 const keyState = Object.fromEntries(Object.keys(keyMap).map((key) => [key, false]));
+const runtimeConfig = window.R2D2_CONFIG || {};
 const log = [];
 let logId = 0;
 
@@ -25,6 +26,7 @@ const timeElement = document.getElementById("time");
 const carCanvas = document.getElementById("car-canvas");
 const connectionRow = document.querySelector(".connection-row");
 const connectionState = document.getElementById("connection-state");
+const apiTarget = document.getElementById("api-target");
 const cameraStream = document.getElementById("camera-stream");
 const cameraState = document.getElementById("camera-state");
 const cameraPlaceholder = document.getElementById("camera-placeholder");
@@ -237,14 +239,41 @@ function applyMotorStatus(motor, status) {
   syncClasses();
 }
 
-function movementSocketUrl() {
+function apiBaseUrl() {
+  return (runtimeConfig.apiBaseUrl || "").replace(/\/+$/, "");
+}
+
+function renderApiTarget() {
+  apiTarget.textContent = apiBaseUrl() || "LOCAL";
+}
+
+function apiUrl(path) {
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl) {
+    return path;
+  }
+
+  return new URL(path, `${baseUrl}/`).toString();
+}
+
+function websocketUrl(path) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/ws/movement`;
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl) {
+    return `${protocol}//${window.location.host}${path}`;
+  }
+
+  const url = new URL(path, `${baseUrl}/`);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+}
+
+function movementSocketUrl() {
+  return websocketUrl("/ws/movement");
 }
 
 function cameraSocketUrl() {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/ws/camera`;
+  return websocketUrl("/ws/camera");
 }
 
 function connectMovementSocket() {
@@ -337,7 +366,7 @@ function sendMovement(direction) {
 
 async function fetchMotorStatus() {
   try {
-    const response = await fetch("/motor/status");
+    const response = await fetch(apiUrl("/motor/status"));
     applyMotorStatus(await response.json(), null);
   } catch {
     motorAvailable = false;
@@ -466,6 +495,7 @@ drawTickRing();
 drawChevrons();
 renderKeyReference();
 renderLog();
+renderApiTarget();
 syncClasses();
 updateClock();
 loadCarImage();

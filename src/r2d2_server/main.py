@@ -1,8 +1,11 @@
+import json
+import os
 from pathlib import Path
 from typing import TypeGuard
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from r2d2_server import motor_controller
@@ -12,8 +15,20 @@ from r2d2_server.logging_config import configure_logging
 
 app = FastAPI(title="r2d2-server")
 logger = configure_logging()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv("R2D2_CORS_ORIGINS", "*").split(",")
+        if origin.strip()
+    ],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 UI_DIR = Path(__file__).parent / "ui"
+UI_API_BASE_URL_ENV = "R2D2_UI_API_BASE_URL"
 VALID_DIRECTIONS: set[Direction] = {
     "forward",
     "backward",
@@ -26,15 +41,21 @@ VALID_DIRECTIONS: set[Direction] = {
 
 robot_controller = RobotController()
 
-app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
-
 
 def home_page() -> FileResponse:
     return FileResponse(UI_DIR / "index.html")
 
 
+def ui_config_script() -> Response:
+    config = {"apiBaseUrl": os.getenv(UI_API_BASE_URL_ENV, "")}
+    content = f"window.R2D2_CONFIG = {json.dumps(config)};\n"
+    return Response(content=content, media_type="application/javascript")
+
+
 app.add_api_route("/", home_page, methods=["GET"])
 app.add_api_route("/home", home_page, methods=["GET"])
+app.add_api_route("/ui/config.js", ui_config_script, methods=["GET"])
+app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
 
 
 @app.get("/ping", tags=["health"])

@@ -133,10 +133,22 @@ Install dependencies:
 uv sync --dev
 ```
 
+Create local environment config:
+
+```bash
+cp .env.example .env
+```
+
 Run the API locally:
 
 ```bash
 uv run uvicorn r2d2_server.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Run the local UI against a robot server on the network:
+
+```bash
+uv run uvicorn r2d2_server.main:app --host 127.0.0.1 --port 8000 --env-file .env
 ```
 
 Open the controller:

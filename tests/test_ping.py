@@ -33,6 +33,16 @@ def test_motor_status_returns_availability() -> None:
     motor_controller.set_motor_available_for_testing(True)
 
 
+def test_motor_status_allows_browser_cors_requests() -> None:
+    response = client.get(
+        "/motor/status",
+        headers={"Origin": "http://127.0.0.1:8000"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "*"
+
+
 def test_home_page_is_served_at_root_and_home() -> None:
     for path in ("/", "/home"):
         response = client.get(path)
@@ -42,7 +52,30 @@ def test_home_page_is_served_at_root_and_home() -> None:
         assert "CTRL::REMOTE" in response.text
         assert "TOUCH CONTROL" in response.text
         assert "/ui/styles.css" in response.text
+        assert "/ui/config.js" in response.text
         assert "/ui/app.js" in response.text
+
+
+def test_ui_config_defaults_to_same_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("R2D2_UI_API_BASE_URL", raising=False)
+
+    response = client.get("/ui/config.js")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/javascript")
+    assert response.text == 'window.R2D2_CONFIG = {"apiBaseUrl": ""};\n'
+
+
+def test_ui_config_reads_api_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("R2D2_UI_API_BASE_URL", "http://192.168.0.7:80")
+
+    response = client.get("/ui/config.js")
+
+    assert response.status_code == 200
+    assert (
+        response.text
+        == 'window.R2D2_CONFIG = {"apiBaseUrl": "http://192.168.0.7:80"};\n'
+    )
 
 
 def test_ui_static_assets_are_served() -> None:
@@ -53,6 +86,7 @@ def test_ui_static_assets_are_served() -> None:
     assert "/ws/movement" in response.text
     assert "/ws/camera" in response.text
     assert "/motor/status" in response.text
+    assert "R2D2_CONFIG" in response.text
     assert "bindTouchControls" in response.text
 
 
