@@ -138,8 +138,11 @@ body {
 .visual-panel {
   position: relative;
   display: flex;
+  grid-column: 1;
+  grid-row: 1;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   overflow: hidden;
   border-right: 1px solid rgba(0, 229, 255, 0.08);
   min-height: 0;
@@ -147,7 +150,7 @@ body {
 
 .vehicle-visual {
   position: relative;
-  width: min(62vh, 44vw, 620px);
+  width: min(50vh, 42vw, 560px);
   min-width: 17rem;
   aspect-ratio: 1;
 }
@@ -370,7 +373,7 @@ body {
 
 .command-readout {
   position: absolute;
-  bottom: 1.5rem;
+  bottom: calc(clamp(8rem, 24%, 11rem) + 1rem);
   left: 50%;
   color: var(--muted-darker);
   font-family: "Share Tech Mono", monospace;
@@ -386,6 +389,8 @@ body {
 
 .camera-panel {
   display: flex;
+  grid-column: 2;
+  grid-row: 1 / -1;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
@@ -463,7 +468,8 @@ body {
 .sensor-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  flex: 1 1 0;
+  flex: 0 0 clamp(8rem, 24%, 11rem);
+  align-self: stretch;
   min-height: 0;
   border-top: 1px solid rgba(0, 229, 255, 0.08);
 }
@@ -531,10 +537,12 @@ body {
 }
 
 .side-panel {
-  grid-column: 1 / -1;
+  grid-column: 1;
+  grid-row: 2;
   min-height: 0;
   display: flex;
   border-top: 1px solid rgba(0, 229, 255, 0.08);
+  border-right: 1px solid rgba(0, 229, 255, 0.08);
 }
 
 .touch-controls,
@@ -930,6 +938,17 @@ h2 {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(20rem, 45vh) minmax(24rem, 52vh) auto;
     overflow: visible;
+  }
+
+  .visual-panel,
+  .camera-panel,
+  .side-panel {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .command-readout {
+    bottom: calc(clamp(8rem, 24%, 11rem) + 1rem);
   }
 
   .visual-panel,
