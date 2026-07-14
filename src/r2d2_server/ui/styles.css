@@ -17,11 +17,12 @@
 
 html,
 body {
-  min-height: 100%;
+  height: 100%;
   margin: 0;
 }
 
 body {
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 20% 50%, rgba(0, 229, 255, 0.03), transparent 60%),
     radial-gradient(ellipse at 80% 20%, rgba(0, 229, 255, 0.02), transparent 50%),
@@ -31,9 +32,11 @@ body {
 }
 
 .shell {
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .topbar {
@@ -129,6 +132,7 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .visual-panel {
@@ -390,6 +394,7 @@ body {
 
 .camera-toolbar {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -421,7 +426,7 @@ body {
 
 .camera-frame {
   position: relative;
-  flex: 0 0 50%;
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
   background:
@@ -458,7 +463,7 @@ body {
 .sensor-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  flex: 0 0 50%;
+  flex: 1 1 0;
   min-height: 0;
   border-top: 1px solid rgba(0, 229, 255, 0.08);
 }
@@ -911,9 +916,20 @@ h2 {
 }
 
 @media (max-width: 980px) {
+  body {
+    overflow: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .dashboard {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(20rem, 45vh) minmax(24rem, 52vh) auto;
+    overflow: visible;
   }
 
   .visual-panel,
