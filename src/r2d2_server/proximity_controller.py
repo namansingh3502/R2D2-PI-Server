@@ -21,6 +21,7 @@ PROXIMITY_PINS: dict[str, SensorPins] = {
 _proximity_available = True
 _proximity_mode: Literal["gpio", "noop"] = "gpio"
 _last_error: str | None = None
+_sensors_started = False
 
 
 class ProximityStatus(TypedDict):
@@ -88,8 +89,8 @@ def create_distance_device(pins: SensorPins) -> DistanceDevice:
         return NoOpDistanceDevice(pins["trigger"], pins["echo"])
 
 
-LEFT_SENSOR = create_distance_device(PROXIMITY_PINS["left"])
-RIGHT_SENSOR = create_distance_device(PROXIMITY_PINS["right"])
+LEFT_SENSOR: DistanceDevice | None = None
+RIGHT_SENSOR: DistanceDevice | None = None
 
 
 def is_available() -> bool:
@@ -113,6 +114,19 @@ def set_proximity_available_for_testing(available: bool) -> None:
     _last_error = None if available else "Proximity sensors unavailable in test"
 
 
+def _ensure_sensors_started() -> None:
+    global LEFT_SENSOR, RIGHT_SENSOR, _sensors_started
+
+    if _sensors_started:
+        return
+
+    if LEFT_SENSOR is None:
+        LEFT_SENSOR = create_distance_device(PROXIMITY_PINS["left"])
+    if RIGHT_SENSOR is None:
+        RIGHT_SENSOR = create_distance_device(PROXIMITY_PINS["right"])
+    _sensors_started = True
+
+
 def _read_cm(sensor: DistanceDevice) -> float | None:
     if not _proximity_available:
         return None
@@ -134,10 +148,11 @@ def _mark_unavailable(exc: Exception) -> None:
 
 
 def read() -> ProximityReading:
+    _ensure_sensors_started()
     return {
         "type": "proximity",
-        "left_cm": _read_cm(LEFT_SENSOR),
-        "right_cm": _read_cm(RIGHT_SENSOR),
+        "left_cm": _read_cm(LEFT_SENSOR) if LEFT_SENSOR else None,
+        "right_cm": _read_cm(RIGHT_SENSOR) if RIGHT_SENSOR else None,
         "status": get_status(),
     }
 
@@ -146,5 +161,5 @@ async def stream_readings(
     interval_seconds: float = 0.2,
 ) -> AsyncIterator[ProximityReading]:
     while True:
-        yield read()
+        yield await asyncio.to_thread(read)
         await asyncio.sleep(interval_seconds)
