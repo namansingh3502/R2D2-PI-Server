@@ -146,7 +146,7 @@ GPIO input.
   initial JSON connection message, then binary JPEG frames. By default it runs:
 
   ```bash
-  rpicam-vid --codec mjpeg --timeout 0 --width 640 --height 480 --framerate 15 --output -
+  rpicam-vid --codec mjpeg --timeout 0 --width 640 --height 480 --framerate 15 --nopreview --output -
   ```
 
   Override the camera command with `R2D2_CAMERA_COMMAND` if the Pi camera setup

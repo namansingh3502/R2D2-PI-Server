@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
@@ -6,8 +7,10 @@ from fastapi.testclient import TestClient
 from r2d2_server import motor_controller, proximity_controller
 from r2d2_server.camera_stream import (
     CameraStreamError,
+    _camera_process_lock,
     camera_command,
     extract_jpeg_frame,
+    stream_camera_frames,
 )
 from r2d2_server.logging_config import LOG_FILE
 from r2d2_server.main import app, robot_controller
@@ -201,6 +204,21 @@ def test_camera_command_defaults_to_rpicam(
     assert command[0] == "rpicam-vid"
     assert "--codec" in command
     assert "mjpeg" in command
+    assert "--nopreview" in command
+
+
+def test_camera_stream_rejects_second_active_process() -> None:
+    async def consume_busy_stream() -> None:
+        with pytest.raises(CameraStreamError, match="already active"):
+            async for _frame in stream_camera_frames(command=("unused-camera",)):
+                pass
+
+    acquired = _camera_process_lock.acquire(blocking=False)
+    assert acquired
+    try:
+        asyncio.run(consume_busy_stream())
+    finally:
+        _camera_process_lock.release()
 
 
 def test_movement_websocket_dispatches_direction() -> None:
